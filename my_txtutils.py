@@ -18,7 +18,7 @@ import glob
 import sys
 
 # size of the alphabet that we work with
-ALPHASIZE = 98
+ALPHASIZE = 110
 
 
 # Specification of the supported alphabet (subset of ASCII-7)
@@ -28,10 +28,31 @@ ALPHASIZE = 98
 # 91-97 more punctuation
 # 97-122 lower-case letters
 # 123-126 more punctuation
+# 127-138 Esperanto letters uppercase and lowercase
+esperantoLetters = {
+  'ĉ': 127,
+  'Ĉ': 128,
+  'ĝ': 129,
+  'Ĝ': 130,
+  'ĥ': 131,
+  'Ĥ': 132,
+  'ĵ': 133,
+  'Ĵ': 134,
+  'ŝ': 135,
+  'Ŝ': 136,
+  'ŭ': 137,
+  'Ŭ': 138
+}
+esperantoOrdValues = { }
+
+# allow lookup by ord() number
+for letter in esperantoLetters:
+    esperantoOrdValues[ord(letter)] = esperantoLetters[letter]
+
 def convert_from_alphabet(a):
     """Encode a character
-    :param a: one character
-    :return: the encoded value
+    :param a: ord(one character)
+    :return: the encoded value for the model
     """
     if a == 9:
         return 1
@@ -39,6 +60,9 @@ def convert_from_alphabet(a):
         return 127 - 30  # LF
     elif 32 <= a <= 126:
         return a - 30
+    elif a in esperantoOrdValues:
+        # Esperanto upper and lower case accent letters
+        return esperantoOrdValues[a] - 30
     else:
         return 0  # unknown
 
@@ -61,8 +85,11 @@ def convert_to_alphabet(c, avoid_tab_and_lf=False):
         return 92 if avoid_tab_and_lf else 10  # \ instead of LF
     if 32 <= c + 30 <= 126:
         return c + 30
-    else:
-        return 0  # unknown
+    elif 127 <= c + 30 <= 138:
+        for ordValue in esperantoOrdValues:
+            if esperantoOrdValues[ordValue] == c + 30:
+                return ordValue
+    return 0  # unknown
 
 
 def encode_text(s):
