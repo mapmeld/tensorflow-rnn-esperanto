@@ -106,7 +106,12 @@ function getSuggestions() {
         if (status[1] === '1') {
           spanText += status[0];
         } else {
-          spanText += '-' + status[1] + '?-'
+          spanText += '-' + status[1] + '?-';
+          currentSpan.innerText = spanText;
+          output.appendChild(currentSpan);
+          currentSpan = document.createElement('span');
+          currentSpan.className = 'good';
+          spanText = '';
         }
         if (status[0] === ' ') {
           thisWord = '';
