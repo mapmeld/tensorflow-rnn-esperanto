@@ -28,7 +28,7 @@ ncnt = 0
 with tf.Session() as sess:
     new_saver = tf.train.import_meta_graph('checkpoints/rnn_train_1512523794-42000000.meta')
     new_saver.restore(sess, author)
-    x = my_txtutils.convert_from_alphabet(ord("."))
+    x = my_txtutils.convert_from_alphabet(ord("M"))
     x = np.array([[x]])  # shape [BATCHSIZE, SEQLEN] with BATCHSIZE=1 and SEQLEN=1
 
     # initial values
