@@ -109,7 +109,7 @@ def decode_to_text(c, avoid_tab_and_lf=False):
     return "".join(map(lambda a: chr(convert_to_alphabet(a, avoid_tab_and_lf)), c))
 
 
-def sample_from_probabilities(probabilities, topn=ALPHASIZE):
+def sample_from_probabilities(probabilities, topn=ALPHASIZE, nextChar=0):
     """Roll the dice to produce a random integer in the [0..ALPHASIZE] range,
     according to the provided probabilities. If topn is specified, only the
     topn highest probabilities are taken into account.
@@ -117,10 +117,23 @@ def sample_from_probabilities(probabilities, topn=ALPHASIZE):
     :param topn: the number of highest probabilities to consider. Defaults to all of them.
     :return: a random integer
     """
+    probabilities = [probabilities[0]]
     p = np.squeeze(probabilities)
-    p[np.argsort(p)[:-topn]] = 0
+    bestChars = np.argsort(p)
+    twoBest = bestChars[-2:]
+
+    #print(str(probabilities[0][nextChar]) + '/(' + str(probabilities[0][twoBest[0]]) + ' + ' + str(probabilities[0][twoBest[1]]) + ')')
+
+    nextCharProbability = probabilities[0][nextChar] / (probabilities[0][twoBest[0]] + probabilities[0][twoBest[1]])
+    if ((nextCharProbability < 0.09 and probabilities[0][twoBest[1]] > 0.53)
+        or (nextCharProbability < 0.1 and probabilities[0][twoBest[1]] > 0.9)):
+        nextCharProbability = twoBest[1]
+    else:
+        nextCharProbability = -1
+
+    p[bestChars[:-topn]] = 0
     p = p / np.sum(p)
-    return np.random.choice(ALPHASIZE, 1, p=p)[0]
+    return np.random.choice(ALPHASIZE, 1, p=p)[0], nextCharProbability
 
 
 def rnn_minibatch_sequencer(raw_data, batch_size, sequence_size, nb_epochs):

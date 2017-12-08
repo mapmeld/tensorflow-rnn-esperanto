@@ -1,0 +1,141 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8"/>
+    <title>Esperanto Grammar Space</title>
+    <style>
+textarea {
+  font-family: arial, sans-serif;
+  font-size: 14pt;
+}
+span.good {
+  background: #aaffaa;
+}
+span.bad {
+  background: #ffaaaa;
+}
+    </style>
+  </head>
+  <body>
+    <textarea id="typespace" rows="5" cols="45" placeholder="Type something...">
+    </textarea>
+    <ul id="suggestions">
+    </ul>
+    <script>
+var typed = '';
+var lastSentence = '';
+var suggestionTimer = null;
+var subletters = {
+  'c': 'ĉ',
+  'C': 'Ĉ',
+  'g': 'ĝ',
+  'G': 'Ĝ',
+  'h': 'ĥ',
+  'H': 'Ĥ',
+  'j': 'ĵ',
+  'J': 'Ĵ',
+  's': 'ŝ',
+  'S': 'Ŝ',
+  'u': 'ŭ',
+  'U': 'Ŭ'
+};
+var letterRegexes = {};
+for (var letter in subletters) {
+  letterRegexes[subletters[letter]] = new RegExp(letter + 'x', 'g');
+}
+
+var typespace = document.getElementById('typespace');
+
+typespace.oninput = function(e) {
+  var unmodified = true;
+  var txt = typespace.value;
+  for (var letter in letterRegexes) {
+    txt = txt.replace(letterRegexes[letter], letter);
+  }
+  if (txt.length !== typespace.value.length) {
+    typespace.value = txt;
+  }
+  updateSuggestions();
+}
+
+function getSuggestions() {
+  fetch('/suggest?text=' + lastSentence)
+    .then((response) => {
+      return response.text();
+    })
+    .then((text) => {
+      var output = document.getElementById("suggestions");
+      output.innerText = '';
+      var letters = text.split("\n");
+      var currentSpan = document.createElement('span');
+      currentSpan.className = 'good';
+      var spanText = '';
+      var goodSpan = true;
+      var thisWord = '';
+
+      for (var i = 0; i < letters.length; i++) {
+        var status = letters[i].split(' = ');
+
+        // these aren't included letters
+        if (status.length !== 2) {
+          continue;
+        }
+
+        var onlyCopy = false;
+        if (([',', '-', '?', '.', '!'].indexOf(status[0]) > -1)
+          || (thisWord.length < 3)
+          || (thisWord === 'la')
+          || (thisWord === 'de')
+          || (thisWord === 'l' && status[1] === 'a')
+          || (thisWord === 'd' && status[1] === 'e')
+        ) {
+          // don't try to stop punctuation
+          // don't suggest tiny words
+          onlyCopy = true;
+          status[1] = '1';
+        }
+
+        if (!onlyCopy && ((status[1] !== '1' && goodSpan) || (status[1] === '1' && !goodSpan))) {
+          currentSpan.innerText = spanText;
+          output.appendChild(currentSpan);
+          spanText = '';
+          goodSpan = (status[1] === '1');
+          currentSpan = document.createElement('span');
+          currentSpan.className = goodSpan ? 'good' : 'bad';
+        }
+        if (status[1] === '1') {
+          spanText += status[0];
+        } else {
+          spanText += '-' + status[1] + '?-'
+        }
+        if (status[0] === ' ') {
+          thisWord = '';
+        } else {
+          thisWord += status[0].toLowerCase();
+        }
+      }
+      currentSpan.innerText = spanText;
+      output.appendChild(currentSpan);
+    });
+}
+
+function updateSuggestions() {
+  // ask for suggestion on the beginning text of this sentence only
+  var newLastSentence = '';
+  var typed = typespace.value;
+  for (var i = typed.length - 1; i >= 0; i--) {
+    if (['.', '?', '!', '"'].indexOf(typed[i]) > -1) {
+      break;
+    }
+    newLastSentence = typed[i] + newLastSentence;
+  }
+  lastSentence = newLastSentence.trim();
+
+  if (suggestionTimer) {
+    clearTimeout(suggestionTimer);
+  }
+  suggestionTimer = setTimeout(getSuggestions, 500);
+}
+    </script>
+  </body>
+</html>
